@@ -1,8 +1,12 @@
-#!/usr/bin/python
-# This is a simple port-forward / proxy, written using only the default python
-# library. If you want to make a suggestion or fix something you can contact-me
-# at voorloop_at_gmail.com
-# Distributed over IDC(I Don't Care) license
+'''
+proxy inspired by:
+voorloop@gmail.com - https://gist.github.com/voorloopnul/415cb75a3e4f766dc590#file-proxy-py
+yuichi@yuichi.com - https://github.com/yuichi110/Python_HTTP_Proxy
+
+ReverseProxy that works on socket TCP connection using standard python library so we doesn't care about HTTP or WS or anything else.
+We just care about connections
+
+'''
 import socket
 from ipaddress import ip_address
 import select
