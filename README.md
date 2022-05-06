@@ -1,86 +1,85 @@
 # django-react-toolkit
 Set of tools that gives you easy start with ReactJS integration
 
-# What it all is about?
-Main goal of this project is to make django-react apps development easy in the most easiest way without much interfering to django and react internal project code.
+# About
+Main goal of this project is to make django-react apps development and deployment easy in the most easiest way without much interfering to django and react internal project code.
+
+# Getting Started
+Add `django_react_toolkit` to your installed apps:
+```
+INSTALLED_APPS=[
+    ...
+    'djnago_react_toolkit',
+]
+```
+
 
 # Functionalities:
 
-## 1. Reverse Proxy server - `manage.py runtkserver`
-It's django-admin command used to start proxy server and work on django-react app on one domain.
+## 1. Reverse Proxy server - `manage.py runtkserver` 
+#### ⚠️ If you are working with **create-react-app** to add `proxy: django_server` to your `package.json` file and skip this option.
+It's django-admin command used to start proxy server that sholud forward django and react traffic to one domain.
+#### Setup
+- Add proxy rule configuration to `settings.py`
+```
+DJ_REACT_PROXY_RULE=[
+    #example configuration
+    ('127.0.0.1',8000,['/api','/admin','/static']), # for django dev server
+    ('127.0.0.1',3000,['.*']),                      # for react server
+]
+```
 
-### Setup from scratch
-- Make root folder and create django and react projects:
-    ```   
-    mkdir example
-    cd example
-    ```
-    django:
-    ```
-    python -m venv env <- create your own virtual environment
-    source env/bin/activate
-    pip install django==3.2 <- choose your version
-    django-admin startproject backend
-    ```
-    react (create-react-app):
-    ```
-    npm init
-    npm install create-react-app
-    npx create-react-app frontend
-    rm -r package.json package-lock.json node_modules/
-    ```
-    So at the end we've got two 3 folders:
-    ```
-    backend
-    env
-    frontend
-    ```
-- Then we should install `django-react-toolkit` and add some configuration to our django project `settings.py`
+- Start django and react dev servers:
+```
+$ ./manage.py runserver
+$ npm start
+```
+- Start proxy server:
+```
+$ ./manage.py runtkserver
+```
+Since our proxy is running default on port 8080. We can now access our django `/api`, `/admin` and `/static` and react `/*` from `localhost:8080`. 
+    
+## 2. ServeReactView - `django_react_toolkit.views.ServeReactView`
+Django view that serve us react production build files
+#### Setup
+Add configuration to `settings.py`:
+```
 
-    Make sure you've got activated virtual env!!
-    ```
-    pip install django-react-toolkit
-    ```
-    backend/backend/settings.py
-    
-    ```
-    INSTALLED_APPS=[
-        ...
-        'djnago_react_toolkit',
-    ]
-    DJ_REACT_PROXY_RULE=[
-        #example configuration
-        ('127.0.0.1',8000,['/api','/admin','/static']), # for django dev server
-        ('127.0.0.1',3000,['.*']),                      # for react server
-    ]
-    ```
-    `DJ_REACT_PROXY_RULE` is varible that contains all of our proxy configuration. So later on url: `/admin`,proxy should redirect our request to server working on `127.0.0.1:8000` (django dev server) - so we should see django admin panel.
-- At the and let's start all services and see in browser our proxy in work:
-    
-    **frontend/**
-    
-    Start react development server
-    ```npm run start```
-    
-    **backend/**
-    
-    Apply django migrations and run django development server
-    ```
-    python manage.py migrate
-    python mange.py runserver
-    ```
-    
-    **backend/ (in separete terminal window)**
-    
-    Firslty activate virtual environment and then run toolkit server (reverse proxy):
-    ```
-    source ../env/bin/acitivate
-    python manage.py runtkserver
-    ```
-    
-At this stage all work is done. We can now access our react and django server from one domain on `127.0.0.1:8080` - default proxy address (more in spec). django on urls `/api`,`/admin`,`/static` and react on other that don't match django urls.
-    
-# 2. ----
+# path to folder where you built your react app
+REACT_BUILD_DIR = "/your_react_build_folder/build"
+
+# files that should be served from root path like exmaple.com/favicon.ico
+REACT_ROOT_FILES = ['favicon.ico', 'manifest.json', 'robots.txt'] # <= that is default value
+
+# set of paths reserved for django
+DJANGO_PATHS = ['api','admin','media','static'])
+
+
+STATICFILES_DIRS = [
+    ...
+    REACT_BUILD_DIR / 'static'
+]
+```
+Include `django_react_toolkit` urls in `urls.py`:
+```
+urlpatterns = [
+    ...
+    include('django_react_toolkit.urls`)
+]
+```
+`django_react_toolkit` will take every request that does not match your `DJANGO_PATHS` and serve instead `index.html` or one of `REACT_ROOT_FILES`.
+
+If you want some custom urls just import `ServeReactView` directly:
+```
+from django_react_toolkit.views import ServeReactView
+...
+urlpatters = [
+    re_path(r'/react_app/.*',ServeReactView.as_view(),name="serve_react_view")
+]
+```
+#### 🖋️ If you have some static files (images,fonts,etc.) in react that are in public directory, you can also move them to `public/static` and after build they will be collected as well as `js and css` by django `collectstatic`.
+
 # 3. ----
 
 ## Spec:
@@ -98,6 +97,12 @@ At this stage all work is done. We can now access our react and django server fr
         ('127.0.0.1',8000,['/api','/admin','/static']) #this can't be reached
         ]
     ```
+- #### REACT_BUILD_DIR
+  Path to react build
+- #### REACT_ROOT_FILES
+  List of filenames that should be served from root url. It means all files that directly under `build/` dir
+- #### DJANGO_PATHS
+  List of paths that will be reserved for djngo. E.g. api or admin panel etc.
 ### Commands:
 - #### `manage.py runtkserver`
   Commad that starts reverse proxy server based on our configuration `DJ_REACT_PROXY_RULE`. It's used for serving react dev server and django dev server from same domain.
